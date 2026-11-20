@@ -195,4 +195,15 @@ AddEventHandler('onResourceStop', function(resourceName)
     for entity in pairs(targeted) do
         if DoesEntityExist(entity) then RSGGangsClient.RemoveEntityTarget(entity) end
     end
+
+    -- Props this client controls go with the resource; the server respawns them on the next start.
+    for netId in pairs(knownEquipment) do
+        if NetworkDoesNetworkIdExist(netId) then
+            local entity = NetworkGetEntityFromNetworkId(netId)
+            if entity ~= 0 and DoesEntityExist(entity) and NetworkHasControlOfEntity(entity) then
+                SetEntityAsMissionEntity(entity, true, true)
+                DeleteEntity(entity)
+            end
+        end
+    end
 end)

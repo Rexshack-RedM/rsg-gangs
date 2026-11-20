@@ -84,6 +84,8 @@ Config.WagonInteractDistance = 40.0   -- wagon menu actions: set up / pack away 
 Config.StationInteractDistance = 6.0  -- crafting stations and the strongbox
 
 -- Vehicle spawned in front of the founder when they create a new gang.
+Config.DebugWagon = false -- print wagon spawn/save/despawn steps to the server console
+
 Config.GangVehicle = {
     enabled = true,
     model = 'chuckwagon002x',

@@ -19,14 +19,14 @@ No ox_lib and no ox_target are needed.
 - Create, rename, recolour and disband a gang; invite, accept or decline, kick, promote, demote and hand over leadership
 - Configurable ranks with per-rank permissions (`invite`, `kick`, `promote`, `demote`, `deposit`, `withdraw`, `upgrade`, `disband`, `rename`, `setcolor`, `equipment`)
 - Shared gang bank with server-side limits
-- Gang chuck wagon that spawns when players are nearby, only members can drive it, and its parking spot is saved (when a driver gets out, and again whenever the wagon despawns or the resource stops)
+- Gang chuck wagon that spawns when players are nearby, only members can drive it, and its parking spot follows it automatically (restarting the resource removes and respawns it cleanly, target included)
 - Camp equipment (tent, torches, hitching posts, campfire, crafting table, strongbox) placed with rsg-gizmo near the wagon
 - Crafting stations and a tiered strongbox stash tied to deployed equipment
 - Territories: claim turf by standing in it; owned turf pays income into the gang bank and shows on the map
 - Activity log (bank, members, equipment, turf, upkeep) readable by officers and above
 - Member map blips: online gang members see each other on the map
 - Weekly upkeep taken from the gang bank; gangs that keep missing it are disbanded
-- Gang bounties: officers fund a bounty from the gang bank that appears on rsg-bountyhunter boards; unclaimed money is returned
+- Gang bounties: ranks with the `bounty` permission fund a bounty from the gang bank that appears on rsg-bountyhunter boards; unclaimed money is returned
 - Rivalries: confirmed kills between members of different gangs are counted per rival gang (needs rsg-core 3.4.0+)
 - Gang honor (average member honor from rsg-reputation) shown in the UI, and turf claims affect the claimer's reputation
 - Turf raids: a gang can contest a rival territory by out-numbering its defenders inside it; captured turf is protected for a while
@@ -78,6 +78,8 @@ Everything is in `shared/config.lua`.
 | `Config.PushToTalkControls` | `0x4BC9DABB` | Controls left active while the UI is open |
 | `Config.WagonInteractDistance` | `40.0` | Max distance from the wagon to manage equipment |
 | `Config.StationInteractDistance` | `6.0` | Max distance from a crafting station or strongbox |
+| `Config.RespawnProximityRadius` / `DespawnProximityRadius` | `80.0` / `100.0` | How close a player must be for a saved wagon or prop to spawn, and how far everyone must be for it to be removed |
+| `Config.DebugWagon` | `false` | Print wagon spawn, save and despawn steps to the server console |
 | `Config.GangVehicle` | per file | Wagon model, spawn search, driving restriction, target menu |
 | `Config.GangEquipment` | per file | Equipment props, limits and placement range |
 | `Config.Crafting` | per file | Stations and recipes |
@@ -91,11 +93,11 @@ Everything is in `shared/config.lua`.
 | `Config.Leaderboard` | enabled | `size`, `turfPoints`, `killPoints`, `monthlyReset` |
 | `SvConfig.Webhook` | disabled | In `server/sv_config.lua`: `Enabled`, `Url`, `Name`, `Actions` (needs `Config.ActivityLog.enabled`) |
 | `Config.Rivalry` | enabled | `pairCooldownSeconds` (300): the same killer and victim count once per window |
-| `Config.Bounties` | enabled | Needs rsg-bountyhunter 3.2.0+. `minReward`, `maxReward`, `maxActive`, `expireHours`; needs the `withdraw` permission |
+| `Config.Bounties` | enabled | Needs rsg-bountyhunter 3.2.0+. `minReward`, `maxReward`, `maxActive`, `expireHours`; needs the `bounty` permission |
 | `Config.Admin` | enabled | Staff panel: `enabled`, `command` (`'gangadmin'`), `permission` (`'admin'`, an rsg-core permission), `logLines` (100 log rows shown per gang) |
 | `Config.Territories` | enabled | `maxPerGang`, `incomeIntervalMinutes`, `requireOnlineMember`, and `list` of `{ id, label, coords, radius, claimCost, income }` (the shipped coordinates are examples) |
 
-Territories are claimed, abandoned and raided with the `upgrade` permission; gang bounties need the new `bounty` permission (added to Co-Leader and Leader in the shipped ranks, so add it to custom rank lists). Customised rank lists need the new `'upgrade'` permission added to the ranks that may upgrade storage.
+Territories are claimed, abandoned and raided with the `upgrade` permission, and gang bounties need the `bounty` permission. Both are on Co-Leader and Leader in the shipped ranks; add them to custom rank lists.
 
 ## Usage
 
@@ -129,6 +131,6 @@ local isLeader = exports['rsg-gangs']:IsGangLeader(citizenid)
 exports['rsg-gangs']:AddGangBank('delobo', 500, 'heist payout')   -- true / false
 ```
 
-More exports are in DOCS.md.
+All exports, events, the wagon system, the staff panel and more examples are in DOCS.md.
 
 Support: https://rexshack.tebex.store

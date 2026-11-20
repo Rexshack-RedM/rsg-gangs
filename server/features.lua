@@ -300,7 +300,9 @@ CreateThread(function()
                     if c then list[#list + 1] = { id = m.source, name = m.name or '?', x = c.x, y = c.y, z = c.z } end
                 end
             end
-            local wagon = gang.wagon and { x = gang.wagon.x, y = gang.wagon.y, z = gang.wagon.z } or nil
+            local live = RSGGangs.WagonLiveCoords and RSGGangs.WagonLiveCoords(gang.name)
+            local wagon = live and { x = live.x, y = live.y, z = live.z }
+                or gang.wagon and { x = gang.wagon.x, y = gang.wagon.y, z = gang.wagon.z } or nil
             if #online > 1 or wagon then
                 for _, src in ipairs(online) do
                     local others = {}
@@ -409,11 +411,16 @@ RegisterNetEvent('rsg-gangs:server:postBounty', function(amount)
     if not RSGGangs.AdjustBank(gang, -amount) then RSGGangs.Notify(src, locale('error_generic'), 'error') return end
     local id = MySQL.insert.await('INSERT INTO rsg_gang_bounties (gang_name, reward) VALUES (?, ?)', { gang.name, amount })
     local ref = id and ('gb:' .. id) or nil
-    local posterId = ref and exports['rsg-bountyhunter']:PostBounty({
-        ref = ref, reward = amount, sponsor = gang.label, expireMinutes = (cfg.expireHours or 6) * 60,
-    })
-    if not posterId then
-        RSGGangs.AdjustBank(gang, amount)
+    local posted, posterId = false, nil
+    if ref then
+        posted, posterId = pcall(function()
+            return exports['rsg-bountyhunter']:PostBounty({
+                ref = ref, reward = amount, sponsor = gang.label, expireMinutes = (cfg.expireHours or 6) * 60,
+            })
+        end)
+    end
+    if not posted or not posterId then
+        RSGGangs.AdjustBank(gang, amount) -- give the escrow back
         if id then MySQL.update.await('DELETE FROM rsg_gang_bounties WHERE id = ?', { id }) end
         RSGGangs.Notify(src, locale('error_generic'), 'error')
         return
@@ -451,7 +458,7 @@ function RSGGangs.RivalPayload(gang)
     if not (Config.Rivalry and Config.Rivalry.enabled) then return nil end
     local out = {}
     local seen = {}
-    for rival, kills in pairs(Rivals[gang.name] or {}) do seen[rival] = true end
+    for rival in pairs(Rivals[gang.name] or {}) do seen[rival] = true end
     for other, map in pairs(Rivals) do
         if map[gang.name] then seen[other] = true end
     end
@@ -560,6 +567,7 @@ function RSGGangs.Webhook(gang, actor, action, parts)
     if not ok then text = action end
     hookQueue[#hookQueue + 1] = {
         username = cfg.Name or 'rsg-gangs',
+        allowed_mentions = { parse = {} }, -- gang labels are player text: never let them ping @everyone
         embeds = {{
             title = gang.label,
             description = (actor and (actor .. ': ') or '') .. text,
@@ -697,12 +705,6 @@ end)
 ---------------------------------------------------------------------
 local function season() return os.date('%Y-%m') end
 
-local function memberTotal(gang)
-    local n = 0
-    for _ in pairs(gang.members) do n = n + 1 end
-    return n
-end
-
 local function leaderboard()
     local cfg = Config.Leaderboard
     local rows = {}
@@ -710,7 +712,7 @@ local function leaderboard()
         local kills = 0
         for _, k in pairs(Rivals[name] or {}) do kills = kills + k end
         local turf = ownedCount(name)
-        rows[#rows + 1] = { label = gang.label, tag = gang.tag, members = memberTotal(gang),
+        rows[#rows + 1] = { label = gang.label, tag = gang.tag, members = RSGGangs.MemberCount(gang),
             turf = turf, kills = kills, score = turf * cfg.turfPoints + kills * cfg.killPoints }
     end
     table.sort(rows, function(a, b) return a.score > b.score end)

@@ -607,12 +607,13 @@ local function buildGangPayload(gang)
     }
 end
 
-local function buildState(citizenid, gang)
+-- `payload` lets broadcastGangUpdate build the (expensive) gang payload once for every member.
+local function buildState(citizenid, gang, payload)
     local member = gang and gang.members[citizenid]
     return {
         citizenid = citizenid,
         inGang = gang ~= nil,
-        gang = gang and buildGangPayload(gang) or nil,
+        gang = gang and (payload or buildGangPayload(gang)) or nil,
         myRank = member and member.rank or nil,
         myPermissions = member and permissionList(member.rank) or {},
         canViewLog = member and canViewLog(member.rank) or false,
@@ -631,21 +632,7 @@ local function broadcastGangUpdate(gang)
     local payload = buildGangPayload(gang)
     for citizenid, member in pairs(gang.members) do
         if member.source then
-            TriggerClientEvent('rsg-gangs:client:setState', member.source, {
-                citizenid = citizenid,
-                inGang = true,
-                gang = payload,
-                myRank = member.rank,
-                myPermissions = permissionList(member.rank),
-                canViewLog = canViewLog(member.rank),
-                tagsEnabled = Config.Tags and Config.Tags.enabled or false,
-                leaderboardEnabled = Config.Leaderboard and Config.Leaderboard.enabled or false,
-                createCost = Config.CreateGangCost,
-                minNameLength = Config.MinNameLength,
-                maxNameLength = Config.MaxNameLength,
-                maxBank = Config.MaxBankBalance,
-                colors = Config.GangColors,
-            })
+            TriggerClientEvent('rsg-gangs:client:setState', member.source, buildState(citizenid, gang, payload))
         end
     end
 end
