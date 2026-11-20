@@ -1,6 +1,6 @@
 # rsg-gangs documentation
 
-For server owners and developers. Version 3.1.0.
+For server owners and developers. Version 3.1.1.
 
 ## Contents
 
@@ -30,6 +30,7 @@ For server owners and developers. Version 3.1.0.
 | `server/versionchecker.lua` | Optional update check |
 | `client/main.lua` | NUI focus (with push-to-talk), state, NUI callbacks |
 | `client/vehicle.lua` | Wagon spawn, driving restriction, parking save |
+| `server/wagon.lua` | Wagon registry, parking-spot persistence (driver exit, despawn, resource stop), proximity streaming |
 | `client/equipment.lua` | Prop spawn, rsg-gizmo placement, rsg-target options |
 | `client/crafting.lua` | Opens the crafting view |
 | `client/features.lua` | Territory and member blips, log and territory NUI callbacks |
@@ -163,3 +164,7 @@ Other scripts that move gang money should call `AddGangBank` / `RemoveGangBank` 
 | Ranks cannot upgrade storage | Add `'upgrade'` to that rank's permissions |
 
 Support: https://rexshack.tebex.store
+
+
+### Wagon distance checks
+Equipment set up, pack away and placement measure distance to the wagon's live position when it is spawned, falling back to the saved parking spot. The parking spot is saved when the driver leaves the wagon, and also when the wagon despawns or the resource stops (skipped while equipment is deployed).

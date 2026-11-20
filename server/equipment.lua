@@ -114,6 +114,8 @@ end
 -- Where the wagon is right now (live entity first, saved parking spot as fallback).
 local function wagonReference(gang)
     if not gang.wagon then return nil end
+    local live = RSGGangs.WagonLiveCoords and RSGGangs.WagonLiveCoords(gang.name)
+    if live then return live end
     return vector3(gang.wagon.x, gang.wagon.y, gang.wagon.z)
 end
 
@@ -178,7 +180,7 @@ RegisterNetEvent('rsg-gangs:server:deployEquipment', function(itemId)
     RSGGangs.Grant(src, 'place:' .. lockKey(gang.name, itemId), PLACEMENT_LOCK_SECONDS)
 
     TriggerClientEvent('rsg-gangs:client:closeMenu', src)
-    TriggerClientEvent('rsg-gangs:client:startEquipmentPlacement', src, gang.name, itemId, gang.wagon)
+    TriggerClientEvent('rsg-gangs:client:startEquipmentPlacement', src, gang.name, itemId, { x = wagon.x, y = wagon.y, z = wagon.z })
 end)
 
 RegisterNetEvent('rsg-gangs:server:equipmentPlacementCancelled', function(itemId)

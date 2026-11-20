@@ -7,6 +7,8 @@ local SPAWN_REQUEST_SECONDS = 20
 local WAGON_RESET_COOLDOWN_SECONDS = 30
 local wagonResetCooldowns = {}
 
+local setWagonLocation
+
 local function wagonEntity(gangName)
     local netId = gangWagons[gangName]
     if not netId then return nil end
@@ -22,7 +24,22 @@ local function wagonLiveCoords(gangName)
     return entity and GetEntityCoords(entity) or nil
 end
 
+RSGGangs.WagonLiveCoords = wagonLiveCoords
+
+-- Saves where the wagon is standing right now (covers a wagon moved without the driver
+-- hand-over event, e.g. pulled, pushed or the driver disconnecting).
+local function saveLiveWagonLocation(gangName)
+    local gang = RSGGangs.Gangs[gangName]
+    local entity = wagonEntity(gangName)
+    if not gang or not gang.wagon or not entity then return end
+    if RSGGangs.GangHasDeployedEquipment(gangName) then return end
+    local c = GetEntityCoords(entity)
+    if #(c - vector3(gang.wagon.x, gang.wagon.y, gang.wagon.z)) < 1.0 then return end
+    setWagonLocation(gang, c, GetEntityHeading(entity))
+end
+
 local function deleteGangWagon(gangName)
+    saveLiveWagonLocation(gangName)
     local entity = wagonEntity(gangName)
     if entity then DeleteEntity(entity) end
     if gangWagons[gangName] then
@@ -35,7 +52,7 @@ end
 RSGGangs.DeleteGangWagon = deleteGangWagon
 
 -- Saves a new parking spot for a gang's wagon (memory + database).
-local function setWagonLocation(gang, coords, heading)
+setWagonLocation = function(gang, coords, heading)
     local wagon = { x = coords.x, y = coords.y, z = coords.z, heading = heading }
     if not RSGGangs.DbOk(
         'UPDATE rsg_gangs SET wagon_x = ?, wagon_y = ?, wagon_z = ?, wagon_heading = ? WHERE name = ?',
@@ -222,6 +239,7 @@ end)
 AddEventHandler('onResourceStop', function(resourceName)
     if resourceName ~= GetCurrentResourceName() then return end
     for gangName in pairs(gangWagons) do
+        saveLiveWagonLocation(gangName)
         local entity = wagonEntity(gangName)
         if entity then DeleteEntity(entity) end
     end

@@ -2,7 +2,7 @@
 
 Player-run gangs ("outfits") for the RSG Framework: ranks and permissions, a shared bank, a chuck wagon that acts as the gang base, deployable camp equipment, crafting stations and an upgradable strongbox stash.
 
-Version 3.1.0. Full reference: [DOCS.md](DOCS.md).
+Version 3.1.1. Full reference: [DOCS.md](DOCS.md).
 
 ## Dependencies
 
@@ -19,7 +19,7 @@ No ox_lib and no ox_target are needed.
 - Create, rename, recolour and disband a gang; invite, accept or decline, kick, promote, demote and hand over leadership
 - Configurable ranks with per-rank permissions (`invite`, `kick`, `promote`, `demote`, `deposit`, `withdraw`, `upgrade`, `disband`, `rename`, `setcolor`, `equipment`)
 - Shared gang bank with server-side limits
-- Gang chuck wagon that spawns when players are nearby, only members can drive it, and its parking spot is saved
+- Gang chuck wagon that spawns when players are nearby, only members can drive it, and its parking spot is saved (when a driver gets out, and again whenever the wagon despawns or the resource stops)
 - Camp equipment (tent, torches, hitching posts, campfire, crafting table, strongbox) placed with rsg-gizmo near the wagon
 - Crafting stations and a tiered strongbox stash tied to deployed equipment
 - Territories: claim turf by standing in it; owned turf pays income into the gang bank and shows on the map
