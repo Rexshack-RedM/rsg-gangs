@@ -176,12 +176,13 @@ Config.Crafting = {
             intro = 'Craft supplies using materials from your own saddlebag.',
             recipes = {
                 {
-                    id = 'ammo_pistol',
+                    id = 'ammo_box_pistol',
                     label = 'Pistol Ammo (x10)',
-                    output = { item = 'ammo_pistol', amount = 10 },
+                    output = { item = 'ammo_box_pistol', amount = 10 },
                     ingredients = {
-                        { item = 'metalscrap', amount = 2 },
-                        { item = 'gunpowder', amount = 1 },
+                        { item = 'resource_copper_bar', amount = 1 },
+                        { item = 'resource_lead_bar',   amount = 1 },
+                        { item = 'resource_gunpowder',  amount = 1 },
                     },
                 },
                 {
@@ -189,8 +190,9 @@ Config.Crafting = {
                     label = 'Rifle Ammo (x10)',
                     output = { item = 'ammo_rifle', amount = 10 },
                     ingredients = {
-                        { item = 'metalscrap', amount = 3 },
-                        { item = 'gunpowder', amount = 2 },
+                        { item = 'resource_copper_bar', amount = 1 },
+                        { item = 'resource_lead_bar',   amount = 1 },
+                        { item = 'resource_gunpowder',  amount = 1 },
                     },
                 },
             },
@@ -206,17 +208,17 @@ Config.Crafting = {
                 {
                     id = 'cooked_meat',
                     label = 'Cooked Meat',
-                    output = { item = 'meat_cooked', amount = 1 },
+                    output = { item = 'cooked_meat', amount = 1 },
                     ingredients = {
-                        { item = 'meat_raw', amount = 1 },
+                        { item = 'raw_meat', amount = 1 },
                     },
                 },
                 {
                     id = 'cooked_fish',
                     label = 'Cooked Fish',
-                    output = { item = 'fish_cooked', amount = 1 },
+                    output = { item = 'cooked_fish', amount = 1 },
                     ingredients = {
-                        { item = 'fish_raw', amount = 1 },
+                        { item = 'raw_fish', amount = 1 },
                     },
                 },
             },
