@@ -2,7 +2,7 @@
 
 Player-run gangs ("outfits") for the RSG Framework: ranks and permissions, a shared bank, a chuck wagon that acts as the gang base, deployable camp equipment, crafting stations and an upgradable strongbox stash.
 
-Version 3.0.0. Full reference: [DOCS.md](DOCS.md).
+Version 3.1.0. Full reference: [DOCS.md](DOCS.md).
 
 ## Dependencies
 
@@ -34,6 +34,7 @@ No ox_lib and no ox_target are needed.
 - Leaderboard tab with turf and rival-kill points and an optional monthly season reset
 - Optional Discord webhook for gang activity (`server/sv_config.lua`, never sent to players)
 - Rank-restricted strongbox access
+- Staff admin panel (`/gangadmin`): a full NUI to manage every gang, territory and player (see Usage)
 - Push-to-talk keeps working while the menu is open
 - Exports for other scripts, optional rsg-log logging, version checker
 - Translations: en, de, el, es, fr, ja, nl, pl, pt-br, ro, ru
@@ -91,6 +92,7 @@ Everything is in `shared/config.lua`.
 | `SvConfig.Webhook` | disabled | In `server/sv_config.lua`: `Enabled`, `Url`, `Name`, `Actions` (needs `Config.ActivityLog.enabled`) |
 | `Config.Rivalry` | enabled | `pairCooldownSeconds` (300): the same killer and victim count once per window |
 | `Config.Bounties` | enabled | Needs rsg-bountyhunter 3.2.0+. `minReward`, `maxReward`, `maxActive`, `expireHours`; needs the `withdraw` permission |
+| `Config.Admin` | enabled | Staff panel: `enabled`, `command` (`'gangadmin'`), `permission` (`'admin'`, an rsg-core permission), `logLines` (100 log rows shown per gang) |
 | `Config.Territories` | enabled | `maxPerGang`, `incomeIntervalMinutes`, `requireOnlineMember`, and `list` of `{ id, label, coords, radius, claimCost, income }` (the shipped coordinates are examples) |
 
 Territories are claimed, abandoned and raided with the `upgrade` permission; gang bounties need the new `bounty` permission (added to Co-Leader and Leader in the shipped ranks, so add it to custom rank lists). Customised rank lists need the new `'upgrade'` permission added to the ranks that may upgrade storage.
@@ -113,6 +115,9 @@ Admins (rsg-core `admin` permission):
 | `/disbandgangadmin <name>` | Disband a gang |
 | `/addgangmember <id> <gang> [rank]` | Put a player into a gang |
 | `/setgangwagon <gang>` | Move the gang's wagon spot to your position |
+| `/gangadmin` | Open the staff admin panel (`Config.Admin.permission`) |
+
+Staff admin panel: a large NUI with four tabs. **Gangs** lists every gang with search and opens a detail view with sub-tabs Details (rename, tag, colour, stash tier, upkeep reset, wagon here/clear, rivals reset, delete), Members (add, kick, set rank, transfer leader), Bank (add, remove, set), Assets (pack or clear equipment, territories) and Log. **Territories** lets staff assign, free or end a raid on any turf. **Players** lists online players and puts them into a gang. **Create** founds a gang with no members. Every action is re-checked on the server (permission, rate limit, validation) and written to the gang's activity log.
 
 Flow: found a gang, your wagon appears, open the menu at the wagon, set up equipment near it, craft and store at your stations.
 

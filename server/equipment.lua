@@ -69,6 +69,25 @@ local function playerNearEquipment(src, gang, itemId, distance)
     return false
 end
 
+-- Staff panel: removes every deployed piece of equipment from a gang (database, memory and world).
+-- Returns how many pieces were removed.
+RSGGangs.AdminClearEquipment = function(gangName)
+    local gang = RSGGangs.Gangs[gangName]
+    if not gang then return 0 end
+    local removed = 0
+    for itemId, list in pairs(gang.equipment) do
+        for i = #list, 1, -1 do
+            local instance = list[i]
+            if RSGGangs.DbOk('DELETE FROM rsg_gang_equipment WHERE id = ?', { instance.id }) then
+                table.remove(list, i)
+                deleteTrackedEntity(gangName, itemId, instance.id)
+                removed = removed + 1
+            end
+        end
+    end
+    return removed
+end
+
 RSGGangs.HasDeployedEquipmentItem = hasDeployed
 RSGGangs.PlayerNearEquipment = playerNearEquipment
 

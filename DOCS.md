@@ -1,6 +1,6 @@
 # rsg-gangs documentation
 
-For server owners and developers. Version 3.0.0.
+For server owners and developers. Version 3.1.0.
 
 ## Contents
 
@@ -26,13 +26,15 @@ For server owners and developers. Version 3.0.0.
 | `server/stash.lua` | Strongbox stash and tier upgrades |
 | `server/features.lua` | Territories, upkeep, activity log reads/pruning, member blip broadcast |
 | `server/sv_config.lua` | Server-only settings (Discord webhook) |
+| `server/admin.lua` | Staff panel: one callback `rsg-gangs:server:admin`, the `/gangadmin` command, snapshot and action handlers |
 | `server/versionchecker.lua` | Optional update check |
 | `client/main.lua` | NUI focus (with push-to-talk), state, NUI callbacks |
 | `client/vehicle.lua` | Wagon spawn, driving restriction, parking save |
 | `client/equipment.lua` | Prop spawn, rsg-gizmo placement, rsg-target options |
 | `client/crafting.lua` | Opens the crafting view |
 | `client/features.lua` | Territory and member blips, log and territory NUI callbacks |
-| `html/` | NUI (`index.html`, `style.css`, `app.js`); text comes from the locale files |
+| `client/admin.lua` | Opens the staff panel and relays NUI calls to the server callback; teleport event |
+| `html/` | NUI (`index.html`, `style.css`, `app.js`, plus `admin.css` / `admin.js` for the staff panel); text comes from the locale files. The panel is sized with `clamp(680px, 56vw, 900px)` and the tab row wraps, so all tabs fit without overlapping |
 | `locales/*.json` | en, de, el, es, fr, ja, nl, pl, pt-br, ro, ru (identical keys) |
 | `installation/rsg-gangs.sql` | Manual schema (kept identical to the automatic one) |
 
@@ -86,7 +88,7 @@ if ok then -- hand over the goods end
 
 Client to server events are internal (`rsg-gangs:server:*`); they are validated and rate limited. Server to client: `rsg-gangs:client:setState`, `openMenu`, `closeMenu`, wagon and equipment registry events. Other resources should use the exports instead.
 
-### Features added in 2.2.0 to 3.0.0
+### Features added in 2.2.0 to 3.1.0
 
 - **Activity log**: `RSGGangs.AddLog(gang, citizenid, action, ...)` stores a row; the UI renders it with the `log_<action>` locale key, filling `%s` from the `|`-separated detail. Read access needs `Config.ActivityLog.minWeight`. Old rows are pruned to `keep` every 30 minutes.
 - **Territories**: events `rsg-gangs:server:claimTerritory(id)` and `abandonTerritory(id)` (permission `upgrade`, 1.5 s cooldown). Claiming checks the config entry, that the player is inside its radius (server position), the per-gang limit, the free state and the bank balance; the ownership row is inserted with `INSERT IGNORE` first so two gangs cannot both win. Income is paid every `incomeIntervalMinutes` (only while a member is online when `requireOnlineMember` is true). Territories are freed when a gang is destroyed.
@@ -100,8 +102,29 @@ Client to server events are internal (`rsg-gangs:server:*`); they are validated 
 - **Leaderboard**: score = turf x `turfPoints` + rival kills x `killPoints`. With `monthlyReset`, the first check in a new calendar month clears `rsg_gang_rivals` (the season is stored with a server KVP).
 - **Member blips**: each player can hide themselves and stop receiving blips (stored in a client KVP, sent to the server on state load); the gang wagon's saved position is shown on the same map.
 - **Webhook**: `server/sv_config.lua` is server-only, so the URL never reaches players. Messages are queued (one per 1.5 s, max 50 waiting) and use the `log_<action>` locale text of the server language. Only actions listed in `SvConfig.Webhook.Actions` are sent, and only while the activity log is enabled.
+- **Staff admin panel (3.1.0)**: see the Staff admin panel section below.
 - **Bounty permission**: posting a gang bounty needs `bounty` (was `withdraw` before 3.0.0).
 - **Stash rank**: `Config.GangStash.minWeight` is checked in `openGangStash`.
+
+### Staff admin panel (`server/admin.lua`)
+
+Opened with `/gangadmin` (`Config.Admin.command`, permission `Config.Admin.permission`, default `admin`). All traffic goes through one rsg-core callback, `rsg-gangs:server:admin(action, payload)`, which returns `{ ok = true, ... }` or `{ ok = false, error = <localised text> }`. The server re-checks `HasPermission` on every call, rate limits (150 ms reads, 500 ms writes) and runs the handler under `pcall`.
+
+| Action | Payload | Effect |
+|---|---|---|
+| `snapshot` | none | Stats, all gangs, territories, ranks, stash tiers, colours and limits |
+| `gang` | `name` | Gang detail (members, equipment, territories, upkeep) plus recent log |
+| `players` | none | Online players with their gang |
+| `createGang`, `deleteGang`, `renameGang`, `setTag`, `setColor` | `name`, `label`/`tag`/`color` | Gang lifecycle and look |
+| `bank` | `name`, `mode` (`add`/`remove`/`set`), `amount` | Bank change, capped by `Config.MaxBankBalance` |
+| `setStash` | `name`, `tier` | Set the strongbox tier |
+| `resetUpkeep` | `name` | Clear missed cycles and reschedule |
+| `addMember`, `removeMember`, `setRank`, `transferLeader` | `name`, `citizenid`/`id`, `rank` | Membership and ranks |
+| `setWagonHere`, `clearWagon`, `packEquipment`, `clearRivals` | `name` | Assets and rivalry data |
+| `setTerritory` | `id`, `gang` or none | Assign or free turf (also ends a raid and clears protection) |
+| `teleport` | `name` | Staff member goes to the gang's wagon spot |
+
+Each change adds an `admin` entry to the gang's activity log (`log_admin`). Internal `RSGGangs` additions used by it: `DbTransaction`, `RemoveMember`, `MemberCount`, `RankByWeight`, `AdminClearEquipment(gang)`, `AdminTerritories()`, `AdminSetTerritory(id, gang|nil)` and `PushTerritories`. These are internal, not exports.
 
 ## 6. Security model
 
@@ -112,6 +135,7 @@ Client to server events are internal (`rsg-gangs:server:*`); they are validated 
 - Wagon and equipment reports need a one-time server grant, the entity must exist, be the right type and model, and the player must be near it. Duplicate spawns are deleted.
 - Equipment placement requires the player at the wagon, a grant from the server, a spot within `maxPlacementDistance` of the wagon, and respects `maxDeployed`.
 - Crafting and the stash need the player next to the gang's own deployed station; `CanAddItem` is checked and ingredients are refunded if the reward cannot be given.
+- The staff panel is server-gated: the NUI is only a client. Without the configured rsg-core permission every `rsg-gangs:server:admin` call is refused, so opening the page by other means gives nothing.
 - Invites expire (`Config.InviteExpireSeconds`) and are cleared when a gang is disbanded.
 
 Other scripts that move gang money should call `AddGangBank` / `RemoveGangBank` and do their own distance and permission checks.
@@ -134,6 +158,8 @@ Other scripts that move gang money should call `AddGangBank` / `RemoveGangBank` 
 | Target options missing | `rsg-target` must start before `rsg-gangs` |
 | Placement does nothing | `rsg-gizmo` must be started; stay within the placement range of the wagon |
 | Config warning about an item | Add the item to your items list or fix the recipe |
+| `/gangadmin` says no permission | Give the player the rsg-core permission in `Config.Admin.permission` (default `admin`) |
+| Staff panel text missing | Locale keys `admin_*`, `ui_adm_*` must exist in the active language file |
 | Ranks cannot upgrade storage | Add `'upgrade'` to that rank's permissions |
 
 Support: https://rexshack.tebex.store

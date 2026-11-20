@@ -751,3 +751,43 @@ RegisterNetEvent('rsg-gangs:server:setBlips', function(enabled)
 end)
 
 AddEventHandler('playerDropped', function() blipsOff[source] = nil end)
+
+---------------------------------------------------------------------
+-- Staff panel helpers (used by server/admin.lua)
+---------------------------------------------------------------------
+RSGGangs.PushTerritories = pushRegistry
+
+function RSGGangs.AdminTerritories()
+    local out, now = {}, os.time()
+    for _, t in ipairs((Config.Territories and Config.Territories.list) or {}) do
+        local owner = Territories[t.id]
+        local raid = Raids[t.id]
+        out[#out + 1] = {
+            id = t.id, label = t.label, owner = owner, ownerLabel = owner and gangLabel(owner) or nil,
+            income = t.income or 0, claimCost = t.claimCost or 0,
+            raidBy = raid and gangLabel(raid.attacker) or nil,
+            protected = Protected[t.id] ~= nil and Protected[t.id] > now,
+            x = t.coords.x, y = t.coords.y, z = t.coords.z,
+        }
+    end
+    return out
+end
+
+-- Gives a territory to a gang, or frees it when gangName is nil. Returns true on success.
+function RSGGangs.AdminSetTerritory(id, gangName)
+    if not (Config.Territories and Config.Territories.enabled) or not territoryCfg(id) then return false end
+    if gangName then
+        if not RSGGangs.Gangs[gangName] then return false end
+        if not RSGGangs.DbOk(
+            'INSERT INTO rsg_gang_territories (territory_id, gang_name) VALUES (?, ?) ON DUPLICATE KEY UPDATE gang_name = VALUES(gang_name), claimed_at = NOW()',
+            { id, gangName }) then return false end
+        Territories[id] = gangName
+    else
+        if not RSGGangs.DbOk('DELETE FROM rsg_gang_territories WHERE territory_id = ?', { id }) then return false end
+        Territories[id] = nil
+    end
+    endRaid(id)
+    Protected[id] = nil
+    pushRegistry()
+    return true
+end

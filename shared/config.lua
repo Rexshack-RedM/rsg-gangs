@@ -10,6 +10,15 @@ Config.VersionCheck = true
 -- Command used to open the gang menu
 Config.Command = 'setupgang'
 
+-- Staff panel: a NUI where admins manage every gang (create, rename, bank, members, turf, equipment, upkeep).
+-- The command and every action in the panel are checked on the server against this permission.
+Config.Admin = {
+    enabled = true,
+    command = 'gangadmin',
+    permission = 'admin',  -- rsg-core permission (ACE group) allowed to use the panel
+    logLines = 100,        -- activity log rows loaded for a gang in the panel
+}
+
 -- Cost (cash) to create a new gang
 Config.CreateGangCost = 5000
 

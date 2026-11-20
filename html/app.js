@@ -508,7 +508,7 @@
       renderLog(Array.isArray(data) ? data : []);
     } else if (action === 'state') {
       state = data || { inGang: false };
-      render();
+      if (!window.rsgAdminOpen) render(); // the staff panel owns the screen while it is open
       releasePending();
     }
   });

@@ -767,6 +767,10 @@ RSGGangs.NearestPlayer = nearestPlayer
 RSGGangs.Log = logEvent
 RSGGangs.AddLog = addLog
 RSGGangs.DbOk = dbOk
+RSGGangs.DbTransaction = dbTransaction
+RSGGangs.RemoveMember = removeMember
+RSGGangs.MemberCount = memberCount
+RSGGangs.RankByWeight = function(weight) return rankByWeight[weight] end
 
 ---------------------------------------------------------------------
 -- Exports for other resources
