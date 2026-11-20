@@ -10,6 +10,7 @@ Version 3.1.1. Full reference: [DOCS.md](DOCS.md).
 - rsg-inventory
 - rsg-target
 - rsg-gizmo
+- rsg-wellpump
 - oxmysql
 
 No ox_lib and no ox_target are needed.
@@ -21,7 +22,7 @@ No ox_lib and no ox_target are needed.
 - Shared gang bank with server-side limits
 - Gang chuck wagon that spawns when players are nearby, only members can drive it, and its parking spot follows it automatically (restarting the resource removes and respawns it cleanly, target included)
 - Camp equipment (tent, torches, hitching posts, campfire, crafting table, strongbox) placed with rsg-gizmo near the wagon
-- Crafting stations and a tiered strongbox stash tied to deployed equipment
+- Crafting stations, a well pump that fills buckets and gives a drink (through rsg-wellpump), and a tiered strongbox stash tied to deployed equipment
 - Territories: claim turf by standing in it; owned turf pays income into the gang bank and shows on the map
 - Activity log (bank, members, equipment, turf, upkeep) readable by officers and above
 - Member map blips: online gang members see each other on the map
@@ -50,6 +51,7 @@ ensure rsg-core
 ensure rsg-inventory
 ensure rsg-target
 ensure rsg-gizmo
+ensure rsg-wellpump
 ensure rsg-gangs
 ```
 
@@ -77,11 +79,12 @@ Everything is in `shared/config.lua`.
 | `Config.AllowPushToTalkWhileOpen` | `true` | Keep push-to-talk usable while the UI is open |
 | `Config.PushToTalkControls` | `0x4BC9DABB` | Controls left active while the UI is open |
 | `Config.WagonInteractDistance` | `40.0` | Max distance from the wagon to manage equipment |
-| `Config.StationInteractDistance` | `6.0` | Max distance from a crafting station or strongbox |
+| `Config.StationInteractDistance` | `6.0` | Max distance from a crafting station, the well pump or the strongbox |
 | `Config.RespawnProximityRadius` / `DespawnProximityRadius` | `80.0` / `100.0` | How close a player must be for a saved wagon or prop to spawn, and how far everyone must be for it to be removed |
 | `Config.DebugWagon` | `false` | Print wagon spawn, save and despawn steps to the server console |
 | `Config.GangVehicle` | per file | Wagon model, spawn search, driving restriction, target menu |
 | `Config.GangEquipment` | per file | Equipment props, limits and placement range |
+| `Config.WellPump` | enabled | Well pump targets: `equipmentId` (`wellpump`), `targetIcon`, `drink` (`true`), `drinkIcon`, `requirePermission` (`false`). Bucket items, uses, fill time and drinking are set in rsg-wellpump |
 | `Config.Crafting` | per file | Stations and recipes |
 | `Config.GangStash` | per file | Strongbox and storage tiers; `minWeight` = lowest rank weight that may open it (default `1`) |
 | `Config.ActivityLog` | enabled | `keep` entries per gang (200), `show` in the UI (50), `minWeight` rank weight that can read it (2) |

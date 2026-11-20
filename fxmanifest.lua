@@ -6,7 +6,7 @@ lua54 'yes'
 author 'RexShack'
 name 'rsg-gangs'
 description 'Gang System for RSG Framework'
-version '3.1.2'
+version '3.3.0'
 
 shared_scripts {
     '@rsg-core/shared/locale.lua',
@@ -52,6 +52,7 @@ dependencies {
     'rsg-inventory',
     'rsg-target',
     'rsg-gizmo',
+    'rsg-wellpump',
     'oxmysql',
 }
 

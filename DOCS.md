@@ -39,7 +39,7 @@ Props and the wagon are created by a **player's client** (not the server), and t
 | Wagon | nearest player within `Config.RespawnProximityRadius` | one registry entry per gang, kept alive by heartbeats | clients, when the server sends `despawnGangWagon` |
 | Camp equipment | nearest player within `Config.RespawnProximityRadius` | `equipmentEntities[gang][item][instance] = netId` | server `DeleteEntity` plus the owning client on stop |
 
-Dependencies: `rsg-core`, `rsg-inventory`, `rsg-target`, `rsg-gizmo`, `oxmysql`. Optional integrations: `rsg-log`, `rsg-reputation`, `rsg-bountyhunter`. No ox_lib and no ox_target.
+Dependencies: `rsg-core`, `rsg-inventory`, `rsg-target`, `rsg-gizmo`, `rsg-wellpump`, `oxmysql`. Optional integrations: `rsg-log`, `rsg-reputation`, `rsg-bountyhunter`. No ox_lib and no ox_target.
 
 ---
 
@@ -53,7 +53,7 @@ Dependencies: `rsg-core`, `rsg-inventory`, `rsg-target`, `rsg-gizmo`, `oxmysql`.
 | `server/commands.lua` | Player and admin chat commands |
 | `server/wagon.lua` | Wagon registry, heartbeats, parking-spot saving, spawn and despawn streaming |
 | `server/equipment.lua` | Camp equipment placement, packing and proximity streaming |
-| `server/crafting.lua` | Crafting at deployed stations |
+| `server/crafting.lua` | Crafting at deployed stations and well pump bucket filling |
 | `server/stash.lua` | Strongbox stash and tier upgrades |
 | `server/features.lua` | Territories, raids, upkeep, activity log, member blips, honor, bounties, rivalries, tags, leaderboard, webhook |
 | `server/admin.lua` | Staff panel callback `rsg-gangs:server:admin` and `/gangadmin` |
@@ -61,7 +61,7 @@ Dependencies: `rsg-core`, `rsg-inventory`, `rsg-target`, `rsg-gizmo`, `oxmysql`.
 | `server/versionchecker.lua` | Optional update check |
 | `client/main.lua` | NUI focus (with push-to-talk), state, NUI callbacks that forward to the server |
 | `client/vehicle.lua` | Wagon spawn, wagon target, heartbeats, driving restriction, leftover-wagon sweep |
-| `client/equipment.lua` | Prop spawn, rsg-gizmo placement, rsg-target options for stations and strongbox |
+| `client/equipment.lua` | Prop spawn, rsg-gizmo placement, rsg-target options for stations, the well pump and the strongbox |
 | `client/crafting.lua` | Opens the crafting view |
 | `client/features.lua` | Territory and member blips, log and territory NUI callbacks |
 | `client/admin.lua` | Opens the staff panel and relays NUI calls to the server callback |
@@ -94,13 +94,14 @@ Everything is in `shared/config.lua` unless stated.
 | `Config.AllowPushToTalkWhileOpen` | `true` | Keep push-to-talk usable while the UI is open |
 | `Config.PushToTalkControls` | `{ 0x4BC9DABB }` | Controls left active while the UI is open |
 | `Config.WagonInteractDistance` | `40.0` | Max distance from the wagon for equipment actions and wagon reset |
-| `Config.StationInteractDistance` | `6.0` | Max distance from a crafting station or the strongbox |
+| `Config.StationInteractDistance` | `6.0` | Max distance from a crafting station, the well pump or the strongbox |
 | `Config.GangVehicle` | see below | Wagon model, spawn search, driving restriction, target menu |
 | `Config.RespawnProximityRadius` | `80.0` | A saved wagon or prop is only spawned when a player is this close |
 | `Config.DespawnProximityRadius` | `100.0` | A spawned wagon or prop is removed when nobody is this close |
 | `Config.ProximityCheckInterval` | `5000` | ms between streaming checks |
 | `Config.DebugWagon` | `false` | Print wagon spawn, save and despawn steps to the server console |
 | `Config.GangEquipment` | 7 items (tent, torch, hitchingpost, campfire, crafttable, wellpump, strongbox) | `id`, `label`, `prop`, `initialDistance`, `maxPlacementDistance`, `maxDeployed` |
+| `Config.WellPump` | enabled | Well pump targets on the `wellpump` equipment: `equipmentId`, `targetIcon`, `drink`, `drinkIcon`, `requirePermission`. Bucket items, uses, fill time and drinking are in rsg-wellpump |
 | `Config.Crafting` | enabled | Stations and recipes |
 | `Config.GangStash` | enabled | Strongbox, `minWeight`, storage tiers |
 | `Config.ActivityLog` | enabled | `keep` (200), `show` (50), `minWeight` (2) |
@@ -277,6 +278,27 @@ Stations are `Config.Crafting.stations`, each tied to an equipment id:
 ```
 
 The server checks permission, that the gang has the station deployed, that the player is next to it, the ingredients, and `CanAddItem` for the output. Ingredients are refunded if the reward cannot be given.
+
+### Well pump
+
+The `wellpump` equipment item (`p_wellpumpnbx01x`) gets **Fill Bucket** and **Drink Water** targets. Only members of the gang that owns the pump see it. The bucket logic lives in **rsg-wellpump** (a required dependency): it plays the animation, swaps the items and sets the uses on the filled bucket, so the bucket works the same in every resource. Which items, how many uses and how long the fill takes are set in rsg-wellpump's `Config.EmptyItem`, `Config.FullItem`, `Config.BucketUses` and `Config.FillTime`.
+
+`Config.WellPump` in rsg-gangs:
+
+```lua
+Config.WellPump = {
+    enabled = true,
+    equipmentId = 'wellpump',    -- the Config.GangEquipment id
+    targetIcon = 'fa-solid fa-droplet',
+    drink = true,                -- also show Drink Water
+    drinkIcon = 'fa-solid fa-glass-water',
+    requirePermission = false,   -- true = only ranks with 'equipment'
+}
+```
+
+Flow: the target calls `exports['rsg-wellpump']:PlayFill()` on the client (checks for an empty bucket, plays the progress bar), then fires `rsg-gangs:server:fillBucket`. The server checks the rate limit (80% of rsg-wellpump's fill time), gang membership, the optional `equipment` permission, that the gang has a pump deployed and that the player is next to it. Only then does it call `exports['rsg-wellpump']:FillBucket(src)`.
+
+Drinking works the same way: the client calls `exports['rsg-wellpump']:PlayDrink()` (checks thirst, plays the animation), then fires `rsg-gangs:server:drinkWater`. After the same gang and distance checks the server calls `exports['rsg-wellpump']:Drink(src)`, which enforces rsg-wellpump's drink cooldown, picks the thirst amount and raises thirst on the client.
 
 ### Strongbox
 
@@ -483,6 +505,7 @@ SvConfig.Webhook = {
 - **Grants.** The server issues single-use, time-limited grants (`RSGGangs.Grant` / `ConsumeGrant`) for things a client may report once: the wagon or prop it was asked to spawn, a placement it was approved to start. A client cannot invent these reports.
 - **Wagon.** A wagon registration needs the grant. Heartbeats and parking reports must come from a player within 150 m of the reported position, and only members of the owning gang can change the saved spot.
 - **Equipment.** Placement needs the player at the wagon, a server grant, a spot within `maxPlacementDistance`, and respects `maxDeployed`.
+- Filling a bucket needs the player next to the gang's own deployed well pump; the server rate-limits it to the fill time, and rsg-wellpump checks the empty bucket and refunds it if the full one cannot be added.
 - Crafting and the stash need the player next to the gang's own deployed station; `CanAddItem` is checked and ingredients are refunded if the reward cannot be given.
 - The staff panel is server-gated by an rsg-core permission on every call.
 - Invites expire and are cleared when a gang is disbanded.
@@ -494,6 +517,7 @@ SvConfig.Webhook = {
 ## 14. Server owner how-tos
 
 - **Add equipment:** add an entry to `Config.GangEquipment` with a unique `id`, a `prop`, `maxPlacementDistance` and `maxDeployed`.
+- **Change what the pump gives:** edit `Config.EmptyItem`, `Config.FullItem` and `Config.BucketUses` in rsg-wellpump; both items must exist in your rsg-core items.
 - **Add a recipe:** add it to a station in `Config.Crafting.stations`; its items must exist in your rsg-core items. The server prints a warning on start for missing items.
 - **Add a territory:** add `{ id, label, coords, region, radius, claimCost, income }` to `Config.Territories.list`. Entries with bad coordinates or duplicate ids are ignored with a console warning.
 - **Change the language:** `setr rsg:locale <code>`.
@@ -514,6 +538,7 @@ SvConfig.Webhook = {
 | Wagon returns to its old spot after a restart | Camp equipment is deployed (the spot is not saved then); pack it away, move the wagon, wait a few seconds |
 | An old wagon is left standing after a restart | A wagon spawned by an older version has no tag; remove it once by hand or restart the server |
 | Two wagons for one gang | Should not happen; turn on `Config.DebugWagon` and send the console lines |
+| No "Fill Bucket" option on the well pump | Deploy the pump (`wellpump`) first; be in the gang that owns it; `Config.WellPump.enabled` must be `true`; `rsg-target` and `rsg-wellpump` must start before `rsg-gangs` |
 | Placement does nothing | `rsg-gizmo` must be started; stay within the placement range of the wagon |
 | Config warning about an item | Add the item to your items list or fix the recipe |
 | `/gangadmin` says no permission | Give the player the rsg-core permission in `Config.Admin.permission` |

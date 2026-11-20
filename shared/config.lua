@@ -81,7 +81,7 @@ Config.PushToTalkControls = {
 -- How close (in meters) a member has to be to their wagon, deployed equipment, crafting
 -- station or strongbox for the server to accept an action on it. Server-enforced.
 Config.WagonInteractDistance = 40.0   -- wagon menu actions: set up / pack away / reset wagon
-Config.StationInteractDistance = 6.0  -- crafting stations and the strongbox
+Config.StationInteractDistance = 6.0  -- crafting stations, the well pump and the strongbox
 
 -- Vehicle spawned in front of the founder when they create a new gang.
 Config.DebugWagon = false -- print wagon spawn/save/despawn steps to the server console
@@ -172,6 +172,19 @@ Config.GangEquipment = {
         maxPlacementDistance = 10.0,
         maxDeployed = 1,             -- only 1 strongbox can be set up at a time
     },
+}
+
+-- Well pump: lets gang members fill an empty bucket at their deployed 'wellpump' equipment.
+-- The bucket items, uses, animation and fill time are set in rsg-wellpump's config (Config.EmptyItem,
+-- Config.FullItem, Config.BucketUses, Config.FillTime). Server-enforced: the member must be in the gang
+-- and standing at the gang's own deployed pump.
+Config.WellPump = {
+    enabled = true,
+    equipmentId = 'wellpump',          -- ties this to the 'wellpump' Config.GangEquipment item
+    targetIcon = 'fa-solid fa-droplet',
+    drink = true,                      -- also show a Drink Water option (amount and cooldown are set in rsg-wellpump's Config.Drink)
+    drinkIcon = 'fa-solid fa-glass-water',
+    requirePermission = false,         -- true = only ranks with the 'equipment' permission may use the pump
 }
 
 -- Crafting/cooking config
