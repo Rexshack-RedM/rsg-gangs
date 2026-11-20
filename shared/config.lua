@@ -186,9 +186,9 @@ Config.Crafting = {
                     },
                 },
                 {
-                    id = 'ammo_rifle',
+                    id = 'ammo_box_rifle',
                     label = 'Rifle Ammo (x10)',
-                    output = { item = 'ammo_rifle', amount = 10 },
+                    output = { item = 'ammo_box_rifle', amount = 10 },
                     ingredients = {
                         { item = 'resource_copper_bar', amount = 1 },
                         { item = 'resource_lead_bar',   amount = 1 },
