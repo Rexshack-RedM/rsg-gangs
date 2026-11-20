@@ -32,6 +32,7 @@ local function isVersionOutdated(current, latest)
 end
 
 local function CheckVersion()
+    if not Config.VersionCheck then return end
     local currentVersion = GetResourceMetadata(resourceName, 'version')
     if not currentVersion then
         printLog('error', 'Unable to read current resource version from fxmanifest.lua!')
@@ -41,6 +42,11 @@ local function CheckVersion()
     local versionUrl = githubRawBase .. resourceName .. '/version.txt'
 
     PerformHttpRequest(versionUrl, function(statusCode, remoteVersion, headers)
+        if statusCode == 404 then
+            printLog('warning', 'No version entry found on GitHub for this resource (skipping check).')
+            return
+        end
+
         if statusCode ~= 200 then
             printLog('error', ('Version check failed (HTTP %s). Check your internet or the GitHub URL.'):format(statusCode))
             return
