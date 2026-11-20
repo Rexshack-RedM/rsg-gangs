@@ -209,6 +209,9 @@ local SCHEMA = {
         `id` int(11) NOT NULL AUTO_INCREMENT,
         `gang_name` varchar(50) NOT NULL,
         `reward` int(11) NOT NULL,
+        `target_type` varchar(10) NOT NULL DEFAULT 'player',
+        `target_id` varchar(50) DEFAULT NULL,
+        `target_name` varchar(100) DEFAULT NULL,
         `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
         PRIMARY KEY (`id`),
         KEY `gang_name` (`gang_name`),
@@ -238,6 +241,9 @@ local COLUMN_UPGRADES = {
     { 'rsg_gangs', 'upkeep_due', 'int(11) DEFAULT NULL' },
     { 'rsg_gangs', 'upkeep_missed', 'int(11) NOT NULL DEFAULT 0' },
     { 'rsg_gangs', 'tag', 'varchar(8) DEFAULT NULL' },
+    { 'rsg_gang_bounties', 'target_type', "varchar(10) NOT NULL DEFAULT 'player'" },
+    { 'rsg_gang_bounties', 'target_id', 'varchar(50) DEFAULT NULL' },
+    { 'rsg_gang_bounties', 'target_name', 'varchar(100) DEFAULT NULL' },
 }
 
 local function ensureDatabase()

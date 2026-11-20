@@ -343,3 +343,9 @@ h1 {
 .toast.error { border-left-color: var(--rdr-cost-over); }
 .toast.success { border-left-color: var(--rdr-cost-ok); }
 @keyframes toastIn { from { transform: translateX(30px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+/* Bounty form: kind toggle, amount, HTML dropdown (admin.css has the .dd styles) */
+.seg { display: flex; gap: 8px; margin: 14px 0; }
+#bountyInput { margin-bottom: 12px; }
+.bounty-field { margin-bottom: 4px; }
+.bounty-field .dd { width: 100%; }

@@ -109,7 +109,7 @@ Everything is in `shared/config.lua` unless stated.
 | `Config.Upkeep` | enabled | `intervalHours` (168), `cost` (2500), `maxMissed` (3) |
 | `Config.Territories` | enabled | `maxPerGang`, `incomeIntervalMinutes`, `requireOnlineMember`, `list` |
 | `Config.Reputation` | enabled | `claimAction`, `refreshMinutes` (needs rsg-reputation) |
-| `Config.Bounties` | enabled | `minReward`, `maxReward`, `maxActive`, `expireHours` (needs rsg-bountyhunter 3.2.0+) |
+| `Config.Bounties` | enabled | `minReward`, `maxReward`, `maxActive`, `expireHours`, `targetPlayers`, `targetGangs` (needs rsg-bountyhunter 3.4.0+) |
 | `Config.Rivalry` | enabled | `pairCooldownSeconds` (300) |
 | `Config.Raids` | enabled | `minAttackers`, `holdSeconds`, `durationSeconds`, `cooldownMinutes`, `protectMinutes`, `requireDefenderOnline` |
 | `Config.Tags` | enabled | `minLength`, `maxLength` |
@@ -146,7 +146,7 @@ Tables are created on start when `Config.AutoDatabase = true`. `ensureDatabase` 
 | `rsg_gang_equipment` | `id`, `gang_name`, `item_id`, `x`, `y`, `z`, `heading`, `created_at` |
 | `rsg_gang_logs` | `id`, `gang_name`, `citizenid`, `actor`, `action`, `detail`, `created_at` |
 | `rsg_gang_rivals` | `gang_name`, `rival_name`, `kills` (kills by the first gang against the second) |
-| `rsg_gang_bounties` | `id`, `gang_name`, `reward`, `created_at` (escrow ledger) |
+| `rsg_gang_bounties` | `id`, `gang_name`, `reward`, `target_type` (`player` or `gang`), `target_id` (citizenid or gang name), `target_name`, `created_at` (escrow ledger) |
 | `rsg_gang_territories` | `territory_id` (key), `gang_name`, `claimed_at` |
 
 Members, equipment, logs and territories are removed automatically when their gang row is deleted (foreign keys with `ON DELETE CASCADE`). The strongbox lives in rsg-inventory under `rsg_gang_stash_<stash_id>`; rsg-inventory keeps that inventory after a gang is disbanded.
@@ -315,7 +315,7 @@ Drinking works the same way: the client calls `exports['rsg-wellpump']:PlayDrink
 - **Member blips.** The server sends each member only the positions of the other online members of their own gang, plus the live wagon position. Positions come from the server. Each player can hide themselves (client KVP, sent with `setBlips`).
 - **Reputation.** Gang honor is the rounded average of `exports['rsg-reputation']:GetHonorByCitizenId` over the members, refreshed every `Config.Reputation.refreshMinutes`. A territory claim calls `ApplyAction(src, claimAction, region)`.
 - **Rivalries.** Listens to the server-only `RSGCore:Server:OnPlayerKilled`. A kill between members of two different gangs adds 1 to `rsg_gang_rivals`; the same killer and victim count once per `pairCooldownSeconds`.
-- **Bounties.** `postBounty(amount)` needs `bounty`. The amount moves from the bank into escrow (`rsg_gang_bounties`) and `rsg-bountyhunter:PostBounty` is called inside a `pcall`; if it fails the escrow is returned. When the poster closes, rsg-bountyhunter fires the server-only event `rsg-bountyhunter:server:posterClosed(ref, reason, paid)`: on `completed` the unpaid remainder returns to the bank, otherwise the full amount does. Escrow left over from a restart is refunded on start.
+- **Bounties.** A bounty always names a target: one online player, or a rival gang. In the gang UI the member enters the amount, picks Player or Rival gang, and chooses the target from an HTML dropdown filled by the `rsg-gangs:server:bountyTargets` callback (players are listed by character name and sent back as server ids, gangs by label and sent back as gang names; the callback needs `bounty`). `postBounty(amount, targetType, targetId)` needs `bounty` and checks, on the server: the amount range, that the target still exists, that it is not the player themselves or anyone in the posting gang, that the gang has no bounty on that target already, `maxActive`, and the bank balance. Posts from one gang are serialised so two members cannot slip past `maxActive`. The amount moves from the bank into escrow (`rsg_gang_bounties`) and `rsg-bountyhunter:PostBounty` is called inside a `pcall` with `targetCitizenid` (player) or `targetGang` (gang), `targetName` and `sponsorGang`; if it fails the escrow is returned. A hunter follows a moving search area on the map and brings the target (or, for a gang bounty, any online member of that gang) to a sheriff's office dead, hogtied or cuffed. Members of the posting gang cannot take their own bounty, and a hunter cannot take a bounty on their own gang. When the poster closes, rsg-bountyhunter fires the server-only event `rsg-bountyhunter:server:posterClosed(ref, reason, paid)`: on `completed` the unpaid remainder returns to the bank, otherwise the full amount does. Escrow left over from a restart is refunded on start. rsg-bountyhunter reads gang membership through the `GetPlayerGang` and `GetGangOnlineSources` exports.
 - **Tags.** `setTag(tag)` needs `rename`; it upper-cases, strips non-alphanumerics and checks `minLength`..`maxLength`.
 - **Leaderboard.** Score = turf x `turfPoints` + rival kills x `killPoints`. With `monthlyReset`, the first check in a new calendar month clears `rsg_gang_rivals` (season stored in a server KVP).
 - **Webhook.** `server/sv_config.lua` is server-only so the URL never reaches players. Messages are queued (one per 1.5 s, 50 max) and sent with `allowed_mentions = { parse = {} }`, so gang names cannot ping anyone. Only actions listed in `SvConfig.Webhook.Actions` are sent.
@@ -335,6 +335,7 @@ Drinking works the same way: the client calls `exports['rsg-wellpump']:PlayDrink
 | `AddGangBank(gangName, amount, reason?)` | `true` on success (whole positive amount, capped by `Config.MaxBankBalance`) |
 | `RemoveGangBank(gangName, amount, reason?)` | `true` on success (fails when funds are short) |
 | `GetGangTag(serverId)` | The player's gang tag or `nil` |
+| `GetGangOnlineSources(gangName)` | List of server ids of the gang's online members (empty if the gang does not exist); used by rsg-bountyhunter for gang bounties |
 
 ```lua
 -- Who is this player, and are they allowed to do the thing?
@@ -388,7 +389,7 @@ Client-to-server events are internal. They are all validated and rate limited, a
 | `requestWagonRegistry` | none | cooldown |
 | `claimTerritory`, `abandonTerritory`, `startRaid` | `territoryId` | `upgrade` |
 | `requestTerritories`, `requestLogs`, `requestLeaderboard` | none | member / rank |
-| `postBounty` | `amount` | `bounty` |
+| `postBounty` | `amount`, `targetType` (`player` or `gang`), `targetId` (server id or gang name) | `bounty` |
 | `setBlips` | `enabled` | cooldown |
 
 ### Server to client events (`rsg-gangs:client:*`)
@@ -416,7 +417,7 @@ Client-to-server events are internal. They are all validated and rate limited, a
 
 ### NUI callbacks
 
-`close`, `refresh`, `createGang`, `disbandGang`, `invitePlayer`, `kickMember`, `leaveGang`, `promoteMember`, `demoteMember`, `transferLeadership`, `depositMoney`, `withdrawMoney`, `renameGang`, `setColor`, `deployEquipment`, `packEquipment`, `upgradeGangStash`, `resetWagon`, `craftItem`, `declineInvite`, `setBlips`, `requestLeaderboard`, `startRaid`, `setTag`, `requestLogs`, `postBounty`, `claimTerritory`, `abandonTerritory`, `adminCall`, `adminClose`. Each one only forwards to the matching server event.
+`close`, `refresh`, `createGang`, `disbandGang`, `invitePlayer`, `kickMember`, `leaveGang`, `promoteMember`, `demoteMember`, `transferLeadership`, `depositMoney`, `withdrawMoney`, `renameGang`, `setColor`, `deployEquipment`, `packEquipment`, `upgradeGangStash`, `resetWagon`, `craftItem`, `declineInvite`, `setBlips`, `requestLeaderboard`, `startRaid`, `setTag`, `requestLogs`, `postBounty`, `bountyTargets`, `claimTerritory`, `abandonTerritory`, `adminCall`, `adminClose`. Each one only forwards to the matching server event; `bountyTargets` instead awaits the `rsg-gangs:server:bountyTargets` callback and returns its list to the dropdown.
 
 ---
 
@@ -545,5 +546,8 @@ SvConfig.Webhook = {
 | Staff panel text missing | Locale keys `admin_*`, `ui_adm_*` must exist in the active language file |
 | Ranks cannot upgrade storage | Add `'upgrade'` to that rank's permissions |
 | Ranks cannot post bounties | Add `'bounty'` to that rank's permissions |
+| Bounty dropdown is empty | No other player is online (player bounties) or no other gang exists (gang bounties); `Config.Bounties.targetPlayers` / `targetGangs` can also be off |
+| Bounty board shows no gang bounties | rsg-bountyhunter must be 3.4.0+ and started; older versions ignore the target fields |
+| Upgrading: `rsg_gang_bounties` has no target columns | They are added automatically on start. For a manual install run `ALTER TABLE rsg_gang_bounties ADD COLUMN target_type varchar(10) NOT NULL DEFAULT 'player', ADD COLUMN target_id varchar(50) DEFAULT NULL, ADD COLUMN target_name varchar(100) DEFAULT NULL;` |
 
 Support: https://rexshack.tebex.store

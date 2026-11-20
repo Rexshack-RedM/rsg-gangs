@@ -27,7 +27,7 @@ No ox_lib and no ox_target are needed.
 - Activity log (bank, members, equipment, turf, upkeep) readable by officers and above
 - Member map blips: online gang members see each other on the map
 - Weekly upkeep taken from the gang bank; gangs that keep missing it are disbanded
-- Gang bounties: ranks with the `bounty` permission fund a bounty from the gang bank that appears on rsg-bountyhunter boards; unclaimed money is returned
+- Gang bounties: ranks with the `bounty` permission open the Bounty tab, enter an amount and pick a target from a dropdown: a player from the list of online players, or a rival gang for hunters to go after. The amount is held from the gang bank and shown on every rsg-bountyhunter board; unclaimed money is returned
 - Rivalries: confirmed kills between members of different gangs are counted per rival gang (needs rsg-core 3.4.0+)
 - Gang honor (average member honor from rsg-reputation) shown in the UI, and turf claims affect the claimer's reputation
 - Turf raids: a gang can contest a rival territory by out-numbering its defenders inside it; captured turf is protected for a while
@@ -96,7 +96,7 @@ Everything is in `shared/config.lua`.
 | `Config.Leaderboard` | enabled | `size`, `turfPoints`, `killPoints`, `monthlyReset` |
 | `SvConfig.Webhook` | disabled | In `server/sv_config.lua`: `Enabled`, `Url`, `Name`, `Actions` (needs `Config.ActivityLog.enabled`) |
 | `Config.Rivalry` | enabled | `pairCooldownSeconds` (300): the same killer and victim count once per window |
-| `Config.Bounties` | enabled | Needs rsg-bountyhunter 3.2.0+. `minReward`, `maxReward`, `maxActive`, `expireHours`; needs the `bounty` permission |
+| `Config.Bounties` | enabled | Needs rsg-bountyhunter 3.4.0+. `minReward`, `maxReward`, `maxActive`, `expireHours`, `targetPlayers` (bounties on a player), `targetGangs` (bounties on a rival gang); needs the `bounty` permission |
 | `Config.Admin` | enabled | Staff panel: `enabled`, `command` (`'gangadmin'`), `permission` (`'admin'`, an rsg-core permission), `logLines` (100 log rows shown per gang) |
 | `Config.Territories` | enabled | `maxPerGang`, `incomeIntervalMinutes`, `requireOnlineMember`, and `list` of `{ id, label, coords, radius, claimCost, income }` (the shipped coordinates are examples) |
 

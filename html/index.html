@@ -118,10 +118,16 @@
         <section id="tab-bounty" class="tab-content">
           <p class="lede" id="bountyLede"></p>
           <div id="bountyCard" class="card"></div>
-          <div class="row hidden" id="bountyRow">
+          <div class="hidden" id="bountyForm">
+            <div class="seg">
+              <button class="btn btn-small" id="bountyKindPlayer" data-i18n="ui_bounty_target_player"></button>
+              <button class="btn btn-small btn-muted" id="bountyKindGang" data-i18n="ui_bounty_target_gang"></button>
+            </div>
             <input id="bountyInput" class="input" type="number" min="1" data-i18n-placeholder="ui_amount" />
-            <button id="bountyBtn" class="btn" data-i18n="ui_bounty_post"></button>
+            <div id="bountyTargetSlot" class="bounty-field"></div>
+            <button id="bountyBtn" class="btn btn-wide" data-i18n="ui_bounty_post"></button>
           </div>
+          <div id="bountyList" class="list"></div>
         </section>
 
         <section id="tab-top" class="tab-content">

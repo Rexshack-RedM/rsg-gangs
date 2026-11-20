@@ -309,13 +309,16 @@ Config.Reputation = {
     refreshMinutes = 5,
 }
 
--- Gang bounties via rsg-bountyhunter (3.2.0+): the amount is held from the gang bank until the poster ends.
+-- Gang bounties via rsg-bountyhunter (3.4.0+): a gang funds a bounty on a player (picked from the online players)
+-- or on a rival gang for hunters to collect. The amount is held from the gang bank until the poster ends.
 Config.Bounties = {
     enabled = true,
     minReward = 500,
     maxReward = 20000,
     maxActive = 2,
     expireHours = 6,
+    targetPlayers = true, -- allow bounties on a single player
+    targetGangs = true,   -- allow bounties on a rival gang (any online member can be brought in)
 }
 
 -- Rivalries: confirmed player kills between members of different gangs (needs rsg-core 3.4.0+).
